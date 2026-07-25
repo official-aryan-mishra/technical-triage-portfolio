@@ -1,0 +1,37 @@
+ChromeOS App Drawer Silent Uninstallation Failure (Crostini Integration)
+
+* **Device & OS Environment:** Acer Chromebook Plus 514 (Intel Core i3-n305) | ChromeOS Version 146.0.7680.184 (Official Build, 64-bit)
+* **Target Subsystem:** ChromeOS App Launcher / Crostini (Debian 12 Container Service)
+* **Tracking Identifier:** Chromium Issue Tracker ID 500793598
+* **Status:** Open / Triaged (Priority: P2)
+* **Evidence:** [Screen Recording Attachment](https://issuetracker.google.com/500793598#attachment75329515)
+
+---
+
+## 1. Issue Overview & Symptoms
+When attempting to uninstall a Linux (Crostini) application directly from the native ChromeOS application drawer using the right-click GUI menu, the process fails silently. 
+
+* **Expected Result:** The host system triggers the container service (`garcon`) to execute the package uninstallation via `apt`/`dpkg`, and the corresponding `.desktop` shortcut icon is removed from the launcher.
+* **Actual Result:** Clicking "Uninstall" from the context menu yields no action. The application remains fully installed in the underlying Debian container, and the icon stays permanently stuck in the app drawer.
+* **Regression Window:** Observed starting around the ChromeOS v144 / v145 update releases and persisting through v146.
+
+## 2. Steps to Reproduce
+1. Open the ChromeOS App Launcher.
+2. Locate any installed Linux application icon.
+3. Right-click the icon and select **Uninstall**.
+4. Confirm the uninstallation prompt.
+5. Observe the silent failure—the launcher icon and container package remain untouched.
+
+## 3. Technical Breakdown & Diagnostics
+* **CLI vs. GUI Divergence:** Executing `sudo apt remove <package-name>` inside the Crostini terminal successfully purges the package. This isolates the failure to the **Host-to-Container IPC bridge** (`cros-garcon` communication handler), rather than a broken package manager state inside Debian.
+* **State Sync Failure:** Because the GUI trigger fails to transmit the lifecycle signal to the container, the desktop entry cache fails to invalidate, creating orphaned icons in the user interface.
+
+## 4. Applied Workaround
+Until the Host-to-Container integration bug is resolved in a future system update, applications must be manually uninstalled via terminal execution to ensure proper state cleanup:
+
+```bash
+# Purge the application package directly inside the Crostini container
+sudo apt purge <package-name> -y
+
+# Optional: Force-clear cached desktop files if the icon remains visible in the launcher
+rm -f ~/.local/share/applications/<package-name>.desktop
