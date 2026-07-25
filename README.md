@@ -1,2 +1,37 @@
 # technical-triage-portfolio
 Independent documentation of software testing, bug isolation, and system triage.
+
+### Case Study 1: Upstream Package Segmentation Fault Triage (SuperTux)
+
+* **Target Application:** SuperTux 0.6.3-2 (Debian Stable Repository Package)
+* **Environment:** ChromeOS Crostini Virtualization Stack (Debian 12 Bookworm, Intel Core i3-n305, x86_64)
+* **Status:** Remediated via Local Environment Workaround; Logged Upstream & Platform-side
+
+#### 1. Symptom & Reproduction Steps
+When installing the standard application binary using `sudo apt install supertux` inside the default container environment, execution via `supertux2` immediately triggers an application crash with an unhandled runtime exception and a core dump.
+
+#### 2. Log Analysis & Stacktrace Deep-Dive
+The initial execution failure explicitly identified an unhandled exception involving asset loading:
+
+[FATAL] ./src/supertux/main.cpp:665 Unexpected exception: Couldn't open 'fonts/Roboto-Regular.ttf': 11
+Error: signal 11
+Segmentation fault (core dumped)
+
+By analyzing the debugging information stacktrace, the point of failure can be traced directly to system library interactions during font rendering operations:
+* The kernel throws a `Signal 11` (Segmentation Fault) indicating an invalid memory reference.
+* The execution trace details a cascade running backward from the initial runtime initialization sequence to `libfreetype.so.6` invoking `FT_Done_Face`:
+  /lib/x86_64-linux-gnu/libfreetype.so.6(FT_Done_Face+0x27)
+  supertux2(_ZN7TTFFontD0Ev+0x17)
+  supertux2(_ZNSt10shared_ptrI4FontED1Ev+0x51)
+* **Root Cause Verification:** The application environment isolates its search parameters strictly to local user configuration directory nodes (`~/.supertux2/fonts/`), completely bypassing standard system-wide shared font asset pathways (`/usr/share/fonts/truetype/roboto/`), even when the underlying dependency container includes the verified system-wide `fonts-roboto` package.
+
+#### 3. Applied Resolution & Workaround
+To bypass the path-mapping breakdown within the virtualized environment container without altering the core codebase distribution, a localized structural environment modification was applied:
+
+# Create the local configurations directory node explicitly demanded by the runtime environment
+mkdir -p ~/.supertux2/fonts
+
+# Map the active system-wide Roboto font asset directly into the localized application environment
+cp /usr/share/fonts/truetype/roboto/Roboto-Regular.ttf ~/.supertux2/fonts/
+
+Following the manual deployment of the required font structures directly into the localized user configuration architecture, the file resolution handles succeed seamlessly, stabilizing the execution loop.
