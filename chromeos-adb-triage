@@ -1,0 +1,29 @@
+# Subsystem Bridge Regression & ADB Developer Toggle Deprecation (ChromeOS)
+
+* **Device & OS Environment:** Acer Chromebook Plus 514 (Intel Core i3-N305) | Board: nissa (Craask) | ChromeOS v144.0.7559.221 (Stable Channel)
+* **Target Subsystem:** ChromeOS Settings UI / Linux-to-Android Subsystem Bridge (Crostini to ARCVM)
+* **Tracking Identifier:** Chromium Issue Tracker ID 486349157
+* **Status:** Open / Triaged (Priority: P2)
+
+---
+
+## 1. Issue Overview & Symptoms
+Following the ChromeOS v144 stable update, the **"Develop Android apps"** toggle disappeared entirely from the Linux development environment configuration menus. This UI omission prevents developers from initializing secure ADB sideloading capabilities without forcing the hardware into Full Developer Mode.
+
+* **Expected Result:** The configuration utility should expose the "Develop Android apps" structural flag to provision local ADB routing rules between containers.
+* **Actual Result:** The toggle is absent. Forcing ADB debugging flags directly inside the Android subsystem layer fails to remediate the breakdown, as terminal commands like `adb connect arc` return `Connection Refused` or `Device Offline` errors.
+* **Regression Profile:** Functional inside ChromeOS v143; broken immediately upon updating to v144. A complete hardware Powerwash does not restore the component state.
+
+## 2. Steps to Reproduce
+1. Navigate to **Settings > Developers > Linux development environment**.
+2. Scan the sub-menus for the **"Develop Android apps"** toggle block (Observe: Flag is completely missing).
+3. Attempt manual override: Navigate to **Android Settings > System > Developer Options** and toggle **ADB Debugging** to ON.
+4. Launch the Crostini terminal emulator and execute: `adb connect arc`
+5. Observe the network layer breakdown: Terminal rejects routing handles with a `Connection Refused` status code.
+
+## 3. Technical Breakdown & Diagnostics
+* **Subsystem Communication Isolation:** ADB sideloading on standard ChromeOS functions via an internal virtualization network bridge that routes traffic from the Linux container (Crostini) directly into the Android container (ARCVM). 
+* **Failure Analysis:** The bug is not a failure of the ADB application binary itself. Rather, it is a high-level operating system configuration regression. Because the host system's user interface is missing the configuration toggle, the host OS never starts the underlying secure network bridge daemon, which systematically drops any incoming connection handshakes from the Linux environment.
+
+## 4. Remediation State
+Because this issue impacts the platform configuration architecture, the bug cannot be resolved via standard user-space environment changes or package updates. The system bridge must be restored by platform engineers via a future ChromeOS system release update.
