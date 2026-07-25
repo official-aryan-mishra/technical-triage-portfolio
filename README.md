@@ -1,7 +1,7 @@
 # technical-triage-portfolio
 Independent documentation of software testing, bug isolation, and system triage.
 
-### Case Study 1: Upstream Package Segmentation Fault Triage (SuperTux)
+### * Upstream Package Segmentation Fault Triage (SuperTux)
 
 * **Target Application:** SuperTux 0.6.3-2 (Debian Stable Repository Package)
 * **Environment:** ChromeOS Crostini Virtualization Stack (Debian 12 Bookworm, Intel Core i3-n305, x86_64)
