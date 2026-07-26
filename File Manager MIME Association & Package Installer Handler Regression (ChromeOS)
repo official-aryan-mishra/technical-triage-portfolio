@@ -1,0 +1,35 @@
+File Manager MIME Association & Package Installer Handler Regression (ChromeOS)
+
+* **Device & OS Environment:** Acer Chromebook Plus 514 (Intel Core i3-n305) | ChromeOS Version 146.0.7680.184 (Official Build, 64-bit)
+* **Target Subsystem:** ChromeOS Files App / Crostini GUI Package Installer Service (`cros-garcon`)
+* **Tracking Identifier:** Chromium Issue Tracker ID 500793604
+* **Status:** Open / Triaged (Priority: P2)
+
+---
+
+## 1. Issue Overview & Symptoms
+Following recent system updates, the native ChromeOS Files application lost its default MIME-type association and execution handlers for Debian software packages (`.deb`). 
+
+* **Expected Result:** Double-clicking a `.deb` binary package should invoke the native graphical Linux package installer dialog. Furthermore, right-clicking the file should display an explicit **"Install with Linux"** context option.
+* **Actual Result:** Double-clicking a `.deb` archive erroneously spawns a duplicate window instance of the Files manager app. The **"Install with Linux"** option is entirely omitted from the context menu, and the manual **"Open with..."** sub-menu fails to register or list the Linux installer or Terminal handlers.
+
+## 2. Steps to Reproduce
+1. Download any standard Debian software package (`.deb`) into either the `Downloads` directory or the shared `Linux files` mount point.
+2. Double-click the `.deb` package file.
+3. **Observe Failure:** A duplicate, empty window instance of the ChromeOS Files app opens.
+4. Right-click the `.deb` file and inspect the context menu options.
+5. Hover over **Open with...** (Observe: The Linux package installer handler is missing entirely).
+
+## 3. Technical Breakdown & Diagnostics
+* **Underlying Container Health:** Executing manual installation binaries inside the terminal (`sudo dpkg -i <file.deb>` or `sudo apt install ./<file.deb>`) resolves and executes without issues. This confirms the underlying Crostini container (`penguin`) and package manager are fully functional.
+* **Host Desktop Handler Breakdown:** The bug is isolated to the **Host Desktop File Association Layer**. The ChromeOS File Manager fails to bind `.deb` MIME extension types (`application/vnd.debian.binary-package`) to the container IPC handler service (`cros-garcon`). As a result, the OS treats the `.deb` package as a generic directory archive, attempting to open it as a folder in a new window.
+
+## 4. Applied Terminal Workaround
+While the host desktop team addresses the MIME handler registration regression in the Files app codebase, `.deb` packages must be deployed directly through command-line installation:
+
+```bash
+# Navigate to the directory housing the target binary (e.g., Downloads)
+cd ~/Downloads
+
+# Execute the local package installation via the APT package manager handler
+sudo apt install ./<package_name>.deb -y
