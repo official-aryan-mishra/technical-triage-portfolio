@@ -1,0 +1,35 @@
+Virtualized Subsystem Lifecycle Automation Breakdown (ChromeOS)
+
+* **Device & OS Environment:** Acer Chromebook Plus 514 (Intel Core i3-n305) | Platform: 150.16700.0 (Craasneto) | ChromeOS v50.0.7871.185 (Official Build, 64-bit)
+* **Target Subsystem:** Container Lifecycle Manager / Crostini VM Orchestration (`crosvm`)
+* **Tracking Identifier:** Chromium Issue Tracker ID 538820858
+* **Status:** Open / Triaged (Priority: P2)
+
+---
+
+## 1. Issue Overview & Symptoms
+Following a cold system boot, attempting to launch any graphical user interface (GUI) Linux application via native desktop shortcuts fails to execute. The system launcher icon provides transient visual loading animation, but the underlying virtual machine environment fails to initialize automatically, resulting in a silent failure to launch.
+
+* **Expected Result:** Activating a containerized desktop shortcut should automatically trigger the virtualization manager, wake the Linux VM (`termina`), initialize the application container (`penguin`), and launch the graphical interface over the Wayland display bridge (`Sommelier`).
+* **Actual Result:** The VM remains dormant on cold launch shortcut calls. The environment only initializes if the user manually launches the core Terminal application wrapper, forcing the container up via direct user shell invocation.
+
+## 2. Steps to Reproduce
+1. Perform a clean system restart or power down the device to achieve a cold boot state.
+2. Sign in to the user session.
+3. Select any installed Linux graphical application shortcut (e.g., GIMP, VS Code) directly from the application drawer *without* launching the system terminal first.
+4. **Observe Failure:** The interface spins briefly, the VM container fails to wake up, and the application execution target drops silently.
+5. Launch the native **Terminal** utility application wrapper and await shell initialization.
+6. Close the terminal window and re-attempt shortcut execution (Observe: Application launches instantly).
+
+## 3. Technical Breakdown & Diagnostics
+* **Lifecycle Socket Breakdown:** This regression isolates a breakdown within the automated socket-activation layer of the ChromeOS host environment. The communication handler responsible for capturing GUI desktop execution calls and piping them to the VM initialization agent (`tremplin`) is failing to forward wake up parameters.
+* **Orchestration Analysis:** Because the entire subsystem functions normally once the container state is pushed to active via the terminal, the bug is strictly constrained to the initial automated background boot sequence rather than runtime library execution within Debian.
+
+## 4. Workaround Strategies
+Until platform patch deployment fixes the automated background lifecycle triggers, users can mitigate cold boot application dropping by using a manual startup trigger:
+
+```text
+1. Following a fresh system boot, press the Search/Launcher key.
+2. Launch the "Terminal" application.
+3. Allow the Linux container environment to mount completely.
+4. Close or minimize the Terminal window. The system container environment is now active, and all desktop application links will resolve successfully until the next device power cycle.
