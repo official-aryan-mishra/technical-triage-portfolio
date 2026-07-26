@@ -1,4 +1,4 @@
-Virtualized Subsystem Lifecycle Automation Breakdown (ChromeOS)
+Virtualized Subsystem Lifecycle Automation Breakdown in ChromeOS
 
 * **Device & OS Environment:** Acer Chromebook Plus 514 (Intel Core i3-n305) | Platform: 150.16700.0 (Craasneto) | ChromeOS v50.0.7871.185 (Official Build, 64-bit)
 * **Target Subsystem:** Container Lifecycle Manager / Crostini VM Orchestration (`crosvm`)
